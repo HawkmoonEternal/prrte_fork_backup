@@ -100,6 +100,7 @@
 #include "src/runtime/prte_globals.h"
 #include "src/runtime/runtime.h"
 #include "src/runtime/prte_setop_server.h"
+#include "src/runtime/prte_dyn_sched.h"
 
 #include "include/prte.h"
 #include "src/prted/pmix/pmix_server_internal.h"
@@ -271,6 +272,7 @@ int main(int argc, char *argv[])
     pmix_cli_result_t results;
     pmix_cli_item_t *opt;
 
+
     /* init the globals */
     PMIX_CONSTRUCT(&apps, pmix_list_t);
     if (NULL == (param = getenv("PRTE_BASENAME"))) {
@@ -406,6 +408,7 @@ int main(int argc, char *argv[])
      * choice of proxy since some environments forward their envars */
     unsetenv("PRTE_MCA_schizo_proxy");
 
+    printf("cli_read\n");
     /* parse the input argv to get values, including everyone's MCA params */
     PMIX_CONSTRUCT(&results, pmix_cli_result_t);
     rc = schizo->parse_cli(pargv, &results, PMIX_CLI_WARN);
@@ -419,6 +422,7 @@ int main(int argc, char *argv[])
         }
         return rc;
     }
+    printf("cli_finish\n");
 
     /* check if we are running as root - if we are, then only allow
      * us to proceed if the allow-run-as-root flag was given. Otherwise,
@@ -428,6 +432,24 @@ int main(int argc, char *argv[])
         schizo->allow_run_as_root(&results); // will exit us if not allowed
     }
 
+    //prte_dyn_sched_init();
+    //printf("checking command line option %s\n", PRTE_CLI_DYN_SCHED);
+    ///* see if they provided us the name of a dynamic scheduler */
+    //opt = pmix_cmd_line_get_param(&results, PRTE_CLI_DYN_SCHED);
+    //if (NULL != opt) {
+    //    prte_dyn_sched_set_name(opt->values[0]);
+    //}
+    //printf("checking command line option %s\n", PRTE_CLI_DYN_SCHED_PROXY);
+    ///* see if they provided us a proxy binary to talk to the dynamic scheduler */
+    //opt = pmix_cmd_line_get_param(&results, PRTE_CLI_DYN_SCHED);
+    //if (NULL != opt) {
+    //    printf("spwaning_proxy\n");
+    //    prte_dyn_sched_set_proxy_binary(opt->values[0]);
+    //    prte_dyn_sched_spawn_proxy();
+    //    //prte_dyn_sched_register_alloc_req_response(alloc_cbfunc);
+//
+    //}
+//
     /* if we were given a keepalive pipe, set up to monitor it now */
     opt = pmix_cmd_line_get_param(&results, PRTE_CLI_KEEPALIVE);
     if (NULL != opt) {
@@ -490,7 +512,7 @@ int main(int argc, char *argv[])
 
     /* default to a persistent DVM */
     prte_persistent = true;
-
+ 
     /* if we are told to daemonize, then we cannot have apps */
     if (!pmix_cmd_line_is_taken(&results, PRTE_CLI_DAEMONIZE)) {
         /* see if they want to run an application - let's parse
@@ -1128,6 +1150,8 @@ proceed:
     PMIX_INFO_DESTRUCT(&info);
 
 DONE:
+    setop_server_close();
+    prte_dyn_sched_close();
     /* cleanup and leave */
     prte_finalize();
 
@@ -2404,7 +2428,7 @@ void prte_master_process_alloc_req(int status, pmix_proc_t *sender, pmix_data_bu
 
         return;
     }
-    //printf("not enough rsources.\n");
+    printf("not enough rsources.\n");
     surrender_reservation(reservation_number);
     ret = PMIX_ERR_OUT_OF_RESOURCE;
     goto ERROR;
@@ -2416,7 +2440,9 @@ void prte_master_process_alloc_req(int status, pmix_proc_t *sender, pmix_data_bu
     PMIX_INFO_CREATE(alloc_info, 1);
     uint64_t num_cpus = (uint64_t) num_procs;
     PMIX_INFO_LOAD(alloc_info, PMIX_ALLOC_NUM_CPUS, &num_cpus, PMIX_UINT64);
-    PMIx_Allocation_request_nb(PMIX_ALLOC_EXTEND, info, 1, alloc_cbfunc, alloc_cbdata);
+    //prte_dmr_allocation_request_nb(PMIX_ALLOC_EXTEND, alloc_info, 1, alloc_cbfunc, alloc_cbdata);
+ 
+    PMIx_Allocation_request_nb(PMIX_ALLOC_EXTEND, alloc_info, 1, alloc_cbfunc, alloc_cbdata);
     PMIX_INFO_FREE(alloc_info, 1);
     return;
 

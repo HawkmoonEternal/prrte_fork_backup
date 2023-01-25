@@ -364,6 +364,13 @@ PRTE_EXPORT extern int prte_pmix_server_register_tool(pmix_nspace_t nspace);
 
 PRTE_EXPORT void info_cb_release(void *cbdata);
 
+typedef uint8_t prte_dyn_sched_t;
+typedef enum dyn_sched_name{
+    PRTE_DYN_SCHED_NONE,
+    PRTE_DYN_SCHED_DMR,
+    PRTE_DYN_SCHED_DEEPSEA
+}dyn_sched_name_t;
+
 /*** PSET FLAGS - To store some important properties ***/
 typedef uint16_t prte_pset_flags_t;
 #define PRTE_PSET_FLAGS_T PRTE_UINT16

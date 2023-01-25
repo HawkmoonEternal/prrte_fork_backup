@@ -57,6 +57,7 @@
 
 #include "src/prted/pmix/pmix_server_internal.h"
 #include "src/runtime/prte_setop_server.h"
+#include "src/runtime/prte_dyn_sched.h"
 
 static int dummy_name_ctr = 0;
 static char *prte_pset_base_name = "prrte://base_name/";
@@ -646,6 +647,7 @@ static void _toolconn(int sd, short args, void *cbdata)
     int rc;
     char *tmp;
     size_t n;
+    bool sched_proxy;
     pmix_data_buffer_t *buf;
     prte_plm_cmd_flag_t command = PRTE_PLM_ALLOC_JOBID_CMD;
     pmix_status_t xrc;
@@ -700,6 +702,8 @@ static void _toolconn(int sd, short args, void *cbdata)
                     PMIX_RELEASE(cd);
                     return;
                 }
+            } else if (PMIX_CHECK_KEY(&cd->info[n], "SCHEDULER")){
+                    sched_proxy = true;
             }
         }
     }
@@ -720,6 +724,10 @@ static void _toolconn(int sd, short args, void *cbdata)
             PMIX_LOAD_PROCID(&cd->target, tmp, 0);
             free(tmp);
             prte_plm_globals.next_jobid++;
+            if(sched_proxy){
+                prte_dyn_sched_set_proxy_peer(cd->target);
+                printf("Scheduler proxy connected as tool\n");
+            }
         } else {
             cd->room_num = pmix_pointer_array_add(&prte_pmix_server_globals.local_reqs, cd);
             /* we need to send this to the HNP for a jobid */

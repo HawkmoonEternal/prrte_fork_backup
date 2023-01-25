@@ -85,6 +85,8 @@ BEGIN_C_DECLS
 #define PRTE_CLI_NOPREFIX               "noprefix"                  // none
 #define PRTE_CLI_FWD_SIGNALS            "forward-signals"           // required
 #define PRTE_CLI_RUN_AS_ROOT            "allow-run-as-root"         // none
+#define PRTE_CLI_DYN_SCHED              "dyn_sched_name"            // none
+#define PRTE_CLI_DYN_SCHED_PROXY        "dyn_sched_proxy"           // none
 
 // Application options
 #define PRTE_CLI_NP                     "np"                        // required

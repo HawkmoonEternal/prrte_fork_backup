@@ -23,7 +23,6 @@
 AM_LDFLAGS = $(prte_hwloc_LDFLAGS) $(prte_libevent_LDFLAGS) $(prte_pmix_LDFLAGS)
 AM_CFLAGS = \
             -DPRTE_CONFIGURE_USER="\"@PRTE_CONFIGURE_USER@\"" \
-            -DPRTE_CONFIGURE_HOST="\"@PRTE_CONFIGURE_HOST@\"" \
             -DPRTE_CONFIGURE_DATE="\"@PRTE_CONFIGURE_DATE@\"" \
             -DPRTE_BUILD_USER="\"$$USER\"" \
             -DPRTE_BUILD_HOST="\"$${HOSTNAME:-`(hostname || uname -n) | sed 1q`}\"" \
@@ -35,8 +34,7 @@ AM_CFLAGS = \
             -DPRTE_CC_ABSOLUTE="\"@PRTE_CC_ABSOLUTE@\"" \
             -DPRTE_GREEK_VERSION="\"@PRTE_GREEK_VERSION@\"" \
             -DPRTE_REPO_REV="\"@PRTE_REPO_REV@\"" \
-            -DPMIX_RELEASE_DATE="\"@PMIX_RELEASE_DATE@\"" \
-            -I$(DEEPSEA_INSTALL)/include 
+            -DPMIX_RELEASE_DATE="\"@PMIX_RELEASE_DATE@\"" 
 
 bin_PROGRAMS = prte
 
@@ -47,8 +45,7 @@ prte_LDADD = \
     $(prte_libevent_LIBS) \
     $(prte_hwloc_LIBS) \
     $(prte_pmix_LIBS) \
-    -L$(DEEPSEA_INSTALL)/lib/ -ldeepseacommon -lslurm -lconfigparser \
-	$(top_builddir)/src/libprrte.la
+    $(top_builddir)/src/libprrte.la
 
 install-exec-hook:
 	(cd $(DESTDIR)$(bindir); rm -f prterun$(EXEEXT); $(LN_S) prte$(EXEEXT) prterun$(EXEEXT))

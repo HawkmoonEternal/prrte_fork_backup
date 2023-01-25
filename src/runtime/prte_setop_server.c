@@ -60,7 +60,6 @@ void setop_server_close(){
     PMIX_RELEASE(highest_rank_ever_list);
 }
 
-
 pmix_status_t set_highest_job_rank(pmix_nspace_t nspace, pmix_rank_t highest_rank){
     pmix_data_array_t darray;
     prte_info_item_t *info = NULL, *info_array;
