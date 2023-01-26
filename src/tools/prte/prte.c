@@ -630,6 +630,7 @@ int main(int argc, char *argv[])
         PRTE_UPDATE_EXIT_STATUS(PRTE_ERR_FATAL);
         goto DONE;
     }
+	
     /* ess/hnp also should have created a daemon "app" */
     if (NULL == (dapp = (prte_app_context_t *) pmix_pointer_array_get_item(jdata->apps, 0))) {
         pmix_show_help("help-prun.txt", "bad-app-object", true, prte_tool_basename);
@@ -1048,10 +1049,6 @@ int main(int argc, char *argv[])
     /* let the PMIx server handle it for us so that all the job infos
      * get properly recorded - e.g., forwarding IOF */
     PRTE_PMIX_CONSTRUCT_LOCK(&lock);
-	
-		int action22;
-	char hosts22[2048];
-	int rc22 = dmr_allocation_request(1,1,1,&action22, hosts22);
 	
     ret = PMIx_Spawn_nb(iptr, ninfo, papps, napps, spcbfunc, &lock);
     if (PRTE_SUCCESS != ret) {
@@ -1575,12 +1572,30 @@ static void setup_resource_add_new(pmix_proc_t client, char *delta_pset_name, si
             prte_job_t *djob = prte_get_job_data_object(PRTE_PROC_MY_NAME->nspace);
             prte_node_t *dnode;
 
+
+            for(n = 0; n < prte_node_pool->size; n++){
+                if(NULL == (dnode = pmix_pointer_array_get_item(prte_node_pool, n))){
+                    continue;
+                }
+                printf("dnode name: %s\n", dnode->name);
+
+                if(NULL != dnode->daemon){
+                    printf("deamon name: %s:%d\n", dnode->daemon->name.nspace, dnode->daemon->name.nspace);
+                }else{
+                    printf("node has no daemon\n");
+                }
+
+            }
+
+
             /* Find a node from the DVM that is not yet assigned to the job */
             for(n = 0; n < djob->map->nodes->size; n++){
                 if(NULL == (dnode = pmix_pointer_array_get_item(djob->map->nodes, n))){
                     continue;
                 }
-
+	
+printf("\t(sergio): %s(%s,%d) %s\n", __FILE__, __func__, __LINE__, dnode->name);
+	
                 /* This node is already reserved for another allocation request*/
                 if(node_reserved(dnode) && ! node_reserved_by_number(dnode, reservation_number)){
                     printf("reservation error\n");
@@ -1955,6 +1970,8 @@ void alloc_response_cbfunc(pmix_status_t status, pmix_info_t info[], size_t ninf
  */
 static void _rchandler_new(int sd, short args, void *cbdata)
 {
+	printf("(sergio): %s(%s,%d) \n", __FILE__, __func__, __LINE__);
+	//exit(-1);
     prte_pmix_server_op_caddy_t *scd;
     prte_grpcomm_signature_t *sig;
     prte_daemon_cmd_flag_t cmd;
@@ -2040,6 +2057,9 @@ static void _rchandler_new(int sd, short args, void *cbdata)
 
         PMIX_RELEASE(setop);
     }
+	
+			printf("(sergio): %s(%s,%d) \n", __FILE__, __func__, __LINE__);
+	exit(-1);
 
     /* And launch new procs*/
     if(0 < num_add){
@@ -2119,7 +2139,7 @@ static void _rchandler_new(int sd, short args, void *cbdata)
  * The cbdata is the buffer to be sent to the daemon, i.e. [0]: the daemon id [1]: the room_number
  * The status indicates the result of the execution */
 static void execute_resource_change(pmix_status_t status, pmix_proc_t *proc, pmix_info_t info[], size_t ninfo, pmix_info_cbfunc_t cbfunc, void *cbdata){
-    prte_pmix_server_op_caddy_t *cd;
+	prte_pmix_server_op_caddy_t *cd;
 
     /* If the allocation wasn't successful directly send an answer to the requesting daemon 
      * no release_func needed as the info objects are included in the cbdata anyways
@@ -2146,6 +2166,26 @@ static void execute_resource_change(pmix_status_t status, pmix_proc_t *proc, pmi
     prte_event_set_priority(&(cd->ev), PRTE_MSG_PRI);
     PMIX_POST_OBJECT(cd);
     prte_event_active(&(cd->ev), PRTE_EV_WRITE, 1);
+}
+
+static void wait_for_dvm_expansion(int sd, short args, void *cbdata){
+	prte_pmix_server_op_caddy_t *cd = (prte_pmix_server_op_caddy_t *) cbdata;
+
+	/* if dvm is not yet ready put in an event to check again */
+	if (!prte_dvm_ready) {
+		printf("DVM not yet ready\n retry in 100 ms\n"); 
+		usleep(100000);
+		printf("\t(sergio): %s(%s,%d)\n", __FILE__, __func__, __LINE__);
+
+		prte_event_set(prte_event_base, &(cd->ev), -1, PRTE_EV_WRITE, wait_for_dvm_expansion, cd);
+		prte_event_set_priority(&(cd->ev), PRTE_MSG_PRI);
+		PMIX_POST_OBJECT(cd);
+		prte_event_active(&(cd->ev), PRTE_EV_WRITE, 1);
+	}
+
+	/* dvm is ready wer can now execute the res change */
+	execute_resource_change(PMIX_SUCCESS, PRTE_PROC_MY_NAME, cd->info, 
+	cd->ninfo, cd->infocbfunc, cd->cbdata);
 }
 
 
@@ -2215,36 +2255,52 @@ printf("(sergio): %s(%s,%d)\n", __FILE__, __func__, __LINE__);
         }
 
         /* Add new node objects to the node pool */
-        for(n = 0; n < ninfo; n++){
+        for(n = 0; n < num_new_nodes; n++){
             node_ptr = PMIX_NEW(prte_node_t);
             node_ptr->name = strdup(new_nodes[n]);
             node_ptr->state = PRTE_NODE_STATE_ADDED;
 
             node_ptr->index = pmix_pointer_array_add(prte_node_pool, (void*) node_ptr);
         }
+		prte_node_t *node;
+		for (n = 0; n < prte_node_pool->size; n++) {
+			if (NULL == (node = (prte_node_t *) pmix_pointer_array_get_item(prte_node_pool, n))) {
+				continue;
+            }
+			printf("!!!(sergio): %s(%s,%d) %s\n", __FILE__, __func__, __LINE__, node->name);
+		}
         pmix_argv_free(new_nodes);
+
+        prte_job_t *djob = prte_get_job_data_object(PRTE_PROC_MY_PROCID->nspace);
+		strcpy(djob->originator.nspace, PRTE_PROC_MY_PROCID->nspace);
 
         /* Grow the dvm */
 		prte_dvm_ready = false;
         PRTE_ACTIVATE_JOB_STATE(jdata, PRTE_JOB_STATE_LAUNCH_DAEMONS);
+	
+printf("@@@(sergio): %s(%s,%d) %d\n", __FILE__, __func__, __LINE__, num_new_nodes);	
+/* we need to loop the event library until the DVM is ready 
+* we cannot loop here as it already loops in the main
+* so we put an event into our event base which periodically checks for the dvm status
+*/
+prte_pmix_server_op_caddy_t *cd;
 
-        /* we need to loop the event library until the DVM is ready */
-        while (prte_event_base_active && !prte_dvm_ready) {
-            prte_event_loop(prte_event_base, PRTE_EVLOOP_ONCE);
-			sleep(5);
-			printf("\t(sergio): %s(%s,%d)\n", __FILE__, __func__, __LINE__);
-			fflush(stdin);
-        }
+cd = PMIX_NEW(prte_pmix_server_op_caddy_t);
+cd->ev.ev_base = prte_event_base;
+cd->codes = &ret;
+cd->ncodes = 1;
+cd->info = (pmix_info_t *) cbinfo;
+cd->ninfo = n_cbinfo;
+cd->infocbfunc = alloc_response_cbfunc;
+cd->cbdata = cbdata;
+cd->evncbfunc = NULL;
 
-printf("\t(sergio): %s(%s,%d)\n", __FILE__, __func__, __LINE__);
-exit(-1);
+prte_event_set(prte_event_base, &(cd->ev), -1, PRTE_EV_WRITE, wait_for_dvm_expansion, cd);
+prte_event_set_priority(&(cd->ev), PRTE_MSG_PRI);
+PMIX_POST_OBJECT(cd);
+prte_event_active(&(cd->ev), PRTE_EV_WRITE, 1);
 
-        /* check if something went wrong with setting up the dvm, bail out */
-        if (!prte_dvm_ready) {
-            PRTE_UPDATE_EXIT_STATUS(PRTE_ERR_FATAL);
-            exit(PRTE_ERR_FATAL);
-        }
-
+return;
     }
 
 
@@ -2281,33 +2337,26 @@ pmix_status_t prte_dmr_allocation_request_nb(pmix_alloc_directive_t directive, p
     pmix_status_t rc;
     pmix_info_t *cbinfo = NULL;
 
-    printf("prte_dmr_allocation_request_nb: start\n");
-
     for(n = 0; n < ninfo; n++){
         if(PMIX_CHECK_KEY(&info[n], PMIX_ALLOC_NUM_CPUS)){
             num_procs = info[n].value.data.uint64;
         }
     }
-
-    printf("prte_dmr_allocation_request_nb: requesting %d processes\n", (int) num_procs);
-
+	
     if(0 == num_procs){
         return PMIX_ERR_BAD_PARAM;
     }
 	
-    printf("prte_dmr_allocation_request_nb: sending request\n");
     rc = dmr_allocation_request((int) num_procs, (int) num_procs, (int) num_procs, &action, hosts);
-    printf("prte_dmr_allocation_request_nb: request returned %d\n", rc);
+	printf("(sergio): %s(%s,%d) -> action %d (%s)\n", __FILE__, __func__, __LINE__, action, hosts);
+	//exit(-1);
     if(rc == PMIX_SUCCESS){
         PMIX_INFO_CREATE(cbinfo, 1);
         PMIX_INFO_LOAD(&cbinfo[0], PMIX_NODE_LIST, hosts, PMIX_STRING);
         ncbinfo = 1;
     }
 
-    printf("prte_dmr_allocation_request_nb: calling alloc cbfunc\n", rc);
-    cbfunc(rc, cbinfo, ncbinfo, cbdata, free_info, (void *)info);
-    printf("prte_dmr_allocation_request_nb: finsihed\n", rc);
-
+    cbfunc(rc, cbinfo, ncbinfo, cbdata, free_info, (void *)cbinfo);
 
     return rc;
     

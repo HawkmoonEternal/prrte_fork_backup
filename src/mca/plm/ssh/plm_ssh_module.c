@@ -105,6 +105,9 @@ static int remote_spawn(void);
 static int ssh_terminate_prteds(void);
 static int ssh_finalize(void);
 
+
+int sergio_counter = 0;
+
 prte_plm_base_module_t prte_plm_ssh_module = {
     .init = ssh_init,
     .set_hnp_name = prte_plm_base_set_hnp_name,
@@ -1259,6 +1262,12 @@ static void launch_daemons(int fd, short args, void *cbdata)
      */
     PMIX_RELEASE(state);
     pmix_argv_free(argv);
+	
+		sergio_counter++;
+	printf("(sergio): %s(%s,%d)\n", __FILE__, __func__, __LINE__, sergio_counter);
+	fflush(stdin);
+	if (sergio_counter >= 2) exit(-1);
+	
     return;
 
 cleanup:
