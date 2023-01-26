@@ -1,0 +1,45 @@
+
+##################################################################################################
+  $ ./configure --prefix=/home/bsc21/bsc21334/apps/install/dominik/install/prrte --with-pmix=/home/bsc21/bsc21334/apps/install/dominik/install/pmix
+##################################################################################################
+
+##################################################################################################
+##BASHRC
+if [ $BSC_MACHINE = "mn4" ]; then
+	echo "-------------->>> Loading bashrc for MN4 <<<----------------"
+
+	module purge
+
+	module load bsc autotools
+	module load gcc
+	export LD_LIBRARY_PATH=/home/bsc21/bsc21334/apps/install/slurm/lib:$LD_LIBRARY_PATH
+#	echo "Exporting the path to the base directory"
+	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/bsc21/bsc21334/apps/source/DMR-sessions
+	export LD_LIBRARY_PATH=/home/bsc21/bsc21334/apps/source/DMR-PRTE:$LD_LIBRARY_PATH
+
+export DYNMPI_BASE=/home/bsc21/bsc21334/apps/install/dominik
+
+export PMIX_ROOT=$DYNMPI_BASE/install/pmix
+export PRRTE_ROOT=$DYNMPI_BASE/install/prrte
+export OMPI_ROOT=$DYNMPI_BASE/install/ompi
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PMIX_ROOT/lib
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PRRTE_ROOT/lib
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$OMPI_ROOT/lib
+
+#echo "Updating PATH"
+export PATH="$PATH:$OMPI_ROOT/bin"
+export PATH="$PATH:$PRRTE_ROOT/bin"
+
+#echo "Environment variables set up successfully"
+
+        alias dmrqueue='$HOME/apps/install/slurm/bin/squeue -o "%.7i %.9P %.16j %.2t %.10M %.6D %R"'
+        alias dmrinfo='$HOME/apps/install/slurm/bin/sinfo'
+        alias dmracct='$HOME/apps/install/slurm/bin/sacct'
+        alias dmrcontrol='$HOME/apps/install/slurm/bin/scontrol'
+        alias dmrbatch='$HOME/apps/install/slurm/bin/sbatch'
+        alias dmrcancel='$HOME/apps/install/slurm/bin/scancel'
+fi
+
+##################################################################################################
+

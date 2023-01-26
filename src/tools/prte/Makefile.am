@@ -34,7 +34,10 @@ AM_CFLAGS = \
             -DPRTE_CC_ABSOLUTE="\"@PRTE_CC_ABSOLUTE@\"" \
             -DPRTE_GREEK_VERSION="\"@PRTE_GREEK_VERSION@\"" \
             -DPRTE_REPO_REV="\"@PRTE_REPO_REV@\"" \
-            -DPMIX_RELEASE_DATE="\"@PMIX_RELEASE_DATE@\"" 
+            -DPMIX_RELEASE_DATE="\"@PMIX_RELEASE_DATE@\"" \
+			-I/home/bsc21/bsc21334/apps/source/DMR-PRTE
+			
+#-I/home/bsc21/bsc21334/apps/install/slurm/include
 
 bin_PROGRAMS = prte
 
@@ -45,7 +48,11 @@ prte_LDADD = \
     $(prte_libevent_LIBS) \
     $(prte_hwloc_LIBS) \
     $(prte_pmix_LIBS) \
-    $(top_builddir)/src/libprrte.la
+	$(top_builddir)/src/libprrte.la \
+	-L/home/bsc21/bsc21334/apps/source/DMR-PRTE -ldmr-prte \
+	-L/home/bsc21/bsc21334/apps/install/slurm/lib -lslurm	
+	
+#-L/home/bsc21/bsc21334/apps/install/slurm/lib -lslurm			
 
 install-exec-hook:
 	(cd $(DESTDIR)$(bindir); rm -f prterun$(EXEEXT); $(LN_S) prte$(EXEEXT) prterun$(EXEEXT))

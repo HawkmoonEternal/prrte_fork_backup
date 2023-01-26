@@ -46,6 +46,8 @@
 
 #include "src/runtime/prte_setop_server.h"
 
+//#include "dmr-prte.h"
+
 static prte_dyn_sched_t dyn_sched = PRTE_DYN_SCHED_NONE;
 static pmix_proc_t dyn_sched_peer;
 char *dyn_sched_binary = NULL;
@@ -130,10 +132,9 @@ pmix_status_t prte_dmr_allocation_request_nb(pmix_alloc_directive_t directive, p
     if(0 == num_procs){
         return PMIX_ERR_BAD_PARAM;
     }
-
-
+	
     printf("prte_dmr_allocation_request_nb: sending request\n");
-    rc = dmr_allocation_request((int) num_procs, (int) num_procs, (int) num_procs, &action, hosts);
+    //rc = dmr_allocation_request((int) num_procs, (int) num_procs, (int) num_procs, &action, hosts);
     printf("prte_dmr_allocation_request_nb: request returned %d\n", rc);
     if(rc == PMIX_SUCCESS){
         PMIX_INFO_CREATE(cbinfo, 1);
