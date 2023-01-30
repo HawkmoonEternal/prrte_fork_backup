@@ -117,7 +117,6 @@ void prte_plm_base_set_slots(prte_node_t *node)
 
 void prte_plm_base_daemons_reported(int fd, short args, void *cbdata)
 {
-	printf("(sergio): %s(%s,%d)\n", __FILE__, __func__, __LINE__);
 	
     prte_state_caddy_t *caddy = (prte_state_caddy_t *) cbdata;
     prte_topology_t *t;
@@ -1845,7 +1844,6 @@ void prte_plm_base_daemon_callback(int status, pmix_proc_t *sender, pmix_data_bu
                 /* activate the daemons_reported state for all jobs
                  * whose daemons were launched
                  */
-				printf("@@@(sergio): %s(%s,%d)\n", __FILE__, __func__, __LINE__); 
                 for (i = 1; i < prte_job_data->size; i++) {
                     jdata = (prte_job_t *) pmix_pointer_array_get_item(prte_job_data, i);
                     if (NULL == jdata) {
@@ -2124,11 +2122,8 @@ void prte_plm_base_wrap_args(char **args)
     }
 }
 
-int dominik_counter = 0;
-
 int prte_plm_base_setup_virtual_machine(prte_job_t *jdata)
 {
-	dominik_counter++;
 	
     prte_node_t *node, *nptr;
     prte_proc_t *proc, *pptr;
@@ -2160,7 +2155,6 @@ int prte_plm_base_setup_virtual_machine(prte_job_t *jdata)
     /* if this job is being launched against a fixed DVM, then there is
      * nothing for us to do - the DVM will stand as is */
     if (prte_get_attribute(&jdata->attributes, PRTE_JOB_FIXED_DVM, NULL, PMIX_BOOL)) {
-		printf("!!!(sergio): %s(%s,%d)\n", __FILE__, __func__, __LINE__);	
         /* mark that the daemons have reported so we can proceed */
         daemons->state = PRTE_JOB_STATE_DAEMONS_REPORTED;
         map->num_new_daemons = 0;
@@ -2171,7 +2165,6 @@ int prte_plm_base_setup_virtual_machine(prte_job_t *jdata)
      * the virtual machine unless specifically requested to do so
      */
     if (!PMIX_NSPACE_INVALID(jdata->originator.nspace)) {
-		printf("!!!(sergio): %s(%s,%d) %d\n", __FILE__, __func__, __LINE__, dominik_counter);	
         if (0 == map->num_nodes) {
             PRTE_OUTPUT_VERBOSE((5, prte_plm_base_framework.framework_output,
                                  "%s plm:base:setup_vm creating map",
@@ -2194,18 +2187,13 @@ int prte_plm_base_setup_virtual_machine(prte_job_t *jdata)
             singleton = true;
         }
         PMIX_CONSTRUCT(&nodes, pmix_list_t);
-		//printf("!!!(sergio): %s(%s,%d) %d %d\n", __FILE__, __func__, __LINE__, prte_node_pool->size, singleton);
         for (i = 1; i < prte_node_pool->size; i++) {
 			if (NULL == (node = (prte_node_t *) pmix_pointer_array_get_item(prte_node_pool, i))) {
 				continue;
             }
 			
-			printf("!!!(sergio): %s(%s,%d)\n", __FILE__, __func__, __LINE__);
-			if (dominik_counter >= 3) exit(-1);
-			
 			/* only add in nodes marked as "added" */
             if (!singleton && PRTE_NODE_STATE_ADDED != node->state) {
-				printf("!!!(sergio): %s(%s,%d)\n", __FILE__, __func__, __LINE__);
                 PRTE_OUTPUT_VERBOSE((10, prte_plm_base_framework.framework_output,
                                      "%s plm_base:setup_vm NODE %s WAS NOT ADDED",
                                      PRTE_NAME_PRINT(PRTE_PROC_MY_NAME), node->name));
@@ -2217,7 +2205,6 @@ int prte_plm_base_setup_virtual_machine(prte_job_t *jdata)
             /* retain a copy for our use in case the item gets
              * destructed along the way
              */
-			printf("!!!(sergio): %s(%s,%d) %s\n", __FILE__, __func__, __LINE__, node->name);	
             PMIX_RETAIN(node);
             pmix_list_append(&nodes, &node->super);
             /* reset the state so it can be used for mapping */
@@ -2228,7 +2215,6 @@ int prte_plm_base_setup_virtual_machine(prte_job_t *jdata)
          * do as no other daemons are to be launched
          */
         if (0 == pmix_list_get_size(&nodes)) {
-			printf("!!!(sergio): %s(%s,%d)\n", __FILE__, __func__, __LINE__);
             PRTE_OUTPUT_VERBOSE((5, prte_plm_base_framework.framework_output,
                                  "%s plm:base:setup_vm no new daemons required",
                                  PRTE_NAME_PRINT(PRTE_PROC_MY_NAME)));
@@ -2692,7 +2678,6 @@ process:
                 pptr->parent = proc->name.rank;
             }
         }
-		printf("!!!(sergio): %s(%s,%d) %d\n", __FILE__, __func__, __LINE__, map->num_new_daemons);	
     }
 
     if (prte_process_info.num_daemons != daemons->num_procs) {

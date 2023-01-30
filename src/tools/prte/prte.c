@@ -106,7 +106,7 @@
 #include "src/prted/pmix/pmix_server_internal.h"
 #include "src/prted/prted.h"
 
-#include "dmr-prte.h"
+//#include "dmr-prte.h"
 
 typedef struct {
     prte_pmix_lock_t lock;
@@ -1573,6 +1573,7 @@ static void setup_resource_add_new(pmix_proc_t client, char *delta_pset_name, si
             prte_node_t *dnode;
 
 
+            /*
             for(n = 0; n < prte_node_pool->size; n++){
                 if(NULL == (dnode = pmix_pointer_array_get_item(prte_node_pool, n))){
                     continue;
@@ -1586,6 +1587,7 @@ static void setup_resource_add_new(pmix_proc_t client, char *delta_pset_name, si
                 }
 
             }
+            */
 
 
             /* Find a node from the DVM that is not yet assigned to the job */
@@ -1593,8 +1595,6 @@ static void setup_resource_add_new(pmix_proc_t client, char *delta_pset_name, si
                 if(NULL == (dnode = pmix_pointer_array_get_item(djob->map->nodes, n))){
                     continue;
                 }
-	
-printf("\t(sergio): %s(%s,%d) %s\n", __FILE__, __func__, __LINE__, dnode->name);
 	
                 /* This node is already reserved for another allocation request*/
                 if(node_reserved(dnode) && ! node_reserved_by_number(dnode, reservation_number)){
@@ -1970,8 +1970,6 @@ void alloc_response_cbfunc(pmix_status_t status, pmix_info_t info[], size_t ninf
  */
 static void _rchandler_new(int sd, short args, void *cbdata)
 {
-	printf("(sergio): %s(%s,%d) \n", __FILE__, __func__, __LINE__);
-	//exit(-1);
     prte_pmix_server_op_caddy_t *scd;
     prte_grpcomm_signature_t *sig;
     prte_daemon_cmd_flag_t cmd;
@@ -2057,9 +2055,6 @@ static void _rchandler_new(int sd, short args, void *cbdata)
 
         PMIX_RELEASE(setop);
     }
-	
-			printf("(sergio): %s(%s,%d) \n", __FILE__, __func__, __LINE__);
-	exit(-1);
 
     /* And launch new procs*/
     if(0 < num_add){
@@ -2175,7 +2170,6 @@ static void wait_for_dvm_expansion(int sd, short args, void *cbdata){
 	if (!prte_dvm_ready) {
 		printf("DVM not yet ready\n retry in 100 ms\n"); 
 		usleep(100000);
-		printf("\t(sergio): %s(%s,%d)\n", __FILE__, __func__, __LINE__);
 
 		prte_event_set(prte_event_base, &(cd->ev), -1, PRTE_EV_WRITE, wait_for_dvm_expansion, cd);
 		prte_event_set_priority(&(cd->ev), PRTE_MSG_PRI);
@@ -2196,7 +2190,6 @@ static void wait_for_dvm_expansion(int sd, short args, void *cbdata){
  *      -   provides the alloc_response_cbfunc to be executed afterwards to respond to the requesing daemon
  */
 void alloc_cbfunc(pmix_status_t status, pmix_info_t info[], size_t ninfo, void *cbdata, pmix_release_cbfunc_t release_fn, void *release_cbdata){
-printf("(sergio): %s(%s,%d)\n", __FILE__, __func__, __LINE__);
 
     int n, i, ret, num_new_nodes, n_cbinfo;
     size_t sz;
@@ -2216,8 +2209,6 @@ printf("(sergio): %s(%s,%d)\n", __FILE__, __func__, __LINE__);
     if(PMIX_SUCCESS == (ret = status) && 0 < ninfo){
         for(n = 0; n < ninfo; n++){
             if(PMIX_CHECK_KEY(&info[n], PMIX_NODE_LIST)){
-				printf("\t(sergio): %s(%s,%d) -> %s\n", __FILE__, __func__, __LINE__, info[n].value.data.string);
-                fflush(stdin);
 				new_nodes = pmix_argv_split(info[n].value.data.string, ',');
                 break;
             }
@@ -2233,18 +2224,12 @@ printf("(sergio): %s(%s,%d)\n", __FILE__, __func__, __LINE__);
         if(0 == num_new_nodes){
             goto EXECUTE;
         }
-		
-		printf("(sergio): %s(%s,%d) -> %s\n", __FILE__, __func__, __LINE__, new_nodes[0]);
-		
+
 		/* Get the client's job object */
         PMIX_PROC_CONSTRUCT(&client);
         for(i = 0; i < n_cbinfo; i++){
             if(PMIX_CHECK_KEY(&cbinfo[i], "prte.alloc.client")){
-                //PMIX_VALUE_UNLOAD(ret, &cbinfo[i].value, (void **) &client, &sz);
 				PMIX_PROC_LOAD(&client, cbinfo[i].value.data.proc->nspace, cbinfo[i].value.data.proc->rank);
-				printf("\t(sergio): %s(%s,%d) -> %s %d\n", __FILE__, __func__, __LINE__, client.nspace, client.rank);
-                fflush(stdin);
-
                 break;
             }
         }
@@ -2267,7 +2252,6 @@ printf("(sergio): %s(%s,%d)\n", __FILE__, __func__, __LINE__);
 			if (NULL == (node = (prte_node_t *) pmix_pointer_array_get_item(prte_node_pool, n))) {
 				continue;
             }
-			printf("!!!(sergio): %s(%s,%d) %s\n", __FILE__, __func__, __LINE__, node->name);
 		}
         pmix_argv_free(new_nodes);
 
@@ -2277,30 +2261,29 @@ printf("(sergio): %s(%s,%d)\n", __FILE__, __func__, __LINE__);
         /* Grow the dvm */
 		prte_dvm_ready = false;
         PRTE_ACTIVATE_JOB_STATE(jdata, PRTE_JOB_STATE_LAUNCH_DAEMONS);
-	
-printf("@@@(sergio): %s(%s,%d) %d\n", __FILE__, __func__, __LINE__, num_new_nodes);	
-/* we need to loop the event library until the DVM is ready 
-* we cannot loop here as it already loops in the main
-* so we put an event into our event base which periodically checks for the dvm status
-*/
-prte_pmix_server_op_caddy_t *cd;
 
-cd = PMIX_NEW(prte_pmix_server_op_caddy_t);
-cd->ev.ev_base = prte_event_base;
-cd->codes = &ret;
-cd->ncodes = 1;
-cd->info = (pmix_info_t *) cbinfo;
-cd->ninfo = n_cbinfo;
-cd->infocbfunc = alloc_response_cbfunc;
-cd->cbdata = cbdata;
-cd->evncbfunc = NULL;
+        /* we need to loop the event library until the DVM is ready 
+        * we cannot loop here as it already loops in the main
+        * so we put an event into our event base which periodically checks for the dvm status
+        */
+        prte_pmix_server_op_caddy_t *cd;
 
-prte_event_set(prte_event_base, &(cd->ev), -1, PRTE_EV_WRITE, wait_for_dvm_expansion, cd);
-prte_event_set_priority(&(cd->ev), PRTE_MSG_PRI);
-PMIX_POST_OBJECT(cd);
-prte_event_active(&(cd->ev), PRTE_EV_WRITE, 1);
+        cd = PMIX_NEW(prte_pmix_server_op_caddy_t);
+        cd->ev.ev_base = prte_event_base;
+        cd->codes = &ret;
+        cd->ncodes = 1;
+        cd->info = (pmix_info_t *) cbinfo;
+        cd->ninfo = n_cbinfo;
+        cd->infocbfunc = alloc_response_cbfunc;
+        cd->cbdata = cbdata;
+        cd->evncbfunc = NULL;
 
-return;
+        prte_event_set(prte_event_base, &(cd->ev), -1, PRTE_EV_WRITE, wait_for_dvm_expansion, cd);
+        prte_event_set_priority(&(cd->ev), PRTE_MSG_PRI);
+        PMIX_POST_OBJECT(cd);
+        prte_event_active(&(cd->ev), PRTE_EV_WRITE, 1);
+
+        return;
     }
 
 
@@ -2334,7 +2317,7 @@ pmix_status_t prte_dmr_allocation_request_nb(pmix_alloc_directive_t directive, p
     uint64_t num_procs = 0;
     char hosts[2048];
     int action;
-    pmix_status_t rc;
+    pmix_status_t rc = PMIX_ERR_NOT_SUPPORTED;
     pmix_info_t *cbinfo = NULL;
 
     for(n = 0; n < ninfo; n++){
@@ -2347,9 +2330,8 @@ pmix_status_t prte_dmr_allocation_request_nb(pmix_alloc_directive_t directive, p
         return PMIX_ERR_BAD_PARAM;
     }
 	
-    rc = dmr_allocation_request((int) num_procs, (int) num_procs, (int) num_procs, &action, hosts);
-	printf("(sergio): %s(%s,%d) -> action %d (%s)\n", __FILE__, __func__, __LINE__, action, hosts);
-	//exit(-1);
+    //rc = dmr_allocation_request((int) num_procs, (int) num_procs, (int) num_procs, &action, hosts);
+
     if(rc == PMIX_SUCCESS){
         PMIX_INFO_CREATE(cbinfo, 1);
         PMIX_INFO_LOAD(&cbinfo[0], PMIX_NODE_LIST, hosts, PMIX_STRING);
@@ -2370,7 +2352,6 @@ pmix_status_t prte_dmr_allocation_request_nb(pmix_alloc_directive_t directive, p
  */
 void prte_master_process_alloc_req(int status, pmix_proc_t *sender, pmix_data_buffer_t *buffer, prte_rml_tag_t tag, void *cbdata){	
     int ret, room_number, n, m, k, ninfo_int;
-printf("(sergio): %s(%s,%d)\n", __FILE__, __func__, __LINE__);
     uint8_t rc_type;
 
     size_t ninfo, sz, reservation_number, num_procs, slots = 0, free_slots_in_job = 0;
@@ -2386,7 +2367,6 @@ printf("(sergio): %s(%s,%d)\n", __FILE__, __func__, __LINE__);
     reservation_number = ++cur_alloc_reservation_number;
 
     /* Setp 1: UNLOAD buffer */
-	printf("(sergio): %s(%s,%d)\n", __FILE__, __func__, __LINE__);
     n = 1;
     /* Unload the client proc */
     if(PMIX_SUCCESS != (ret = PMIx_Data_unpack(NULL, buffer, &client, &n, PMIX_PROC))){
@@ -2418,7 +2398,6 @@ printf("(sergio): %s(%s,%d)\n", __FILE__, __func__, __LINE__);
     /* Step 2: Analyze the request they've sent us 
      * -> i.e.: rc_type & num_procs 
      */
-	 printf("(sergio): %s(%s,%d)\n", __FILE__, __func__, __LINE__);
     for(n = 0; n < ninfo; n++){
         if(PMIX_CHECK_KEY(&info[n], "mpi.rc_op_handle")){
             info_rc_op_handle = &info[n];
@@ -2490,7 +2469,7 @@ printf("(sergio): %s(%s,%d)\n", __FILE__, __func__, __LINE__);
      * If yes: proceed to execute the res change (alloc_cb). We do not need to communicate with the scheduler
      * If no, possibly reserve some nodes (include reservation number in cbdata) and goto Step 5
      */
-printf("(sergio): %s(%s,%d)\n", __FILE__, __func__, __LINE__);
+
     /* Count the free slots in the job */
     jdata = prte_get_job_data_object(client.nspace);
     map = jdata->map;
@@ -2541,28 +2520,25 @@ printf("(sergio): %s(%s,%d)\n", __FILE__, __func__, __LINE__);
 
         return;
     }
-    //surrender_reservation(reservation_number);
-    //printf("not enough rsources.\n");
-    //ret = PMIX_ERR_OUT_OF_RESOURCE;
-    //goto ERROR;
+    surrender_reservation(reservation_number);
+    printf("not enough rsources.\n");
+    ret = PMIX_ERR_OUT_OF_RESOURCE;
+    goto ERROR;
     
     /* Step 5:
      * We could not satisfy the request using our own resources, so we ask the scheduler for help
      * Send an allocation request to the scheduler. The alloc_cb will be triggered once the scheduler responds
-     */
+     
     PMIX_INFO_CREATE(alloc_info, 1);
     uint64_t num_cpus = (uint64_t) num_procs;
     PMIX_INFO_LOAD(alloc_info, PMIX_ALLOC_NUM_CPUS, &num_cpus, PMIX_UINT64);
-	printf("(sergio): %s(%s,%d)\n", __FILE__, __func__, __LINE__);
-	//int action;
-	//char hosts[2048];
-	//int rc = dmr_allocation_request(1,1,1,&action, hosts);
-	//printf("(sergio): %s(%s,%d)\n", __FILE__, __func__, __LINE__);
+
     prte_dmr_allocation_request_nb(PMIX_ALLOC_EXTEND, alloc_info, 1, alloc_cbfunc, alloc_cbdata);
  
     //PMIx_Allocation_request_nb(PMIX_ALLOC_EXTEND, alloc_info, 1, alloc_cbfunc, alloc_cbdata);
     PMIX_INFO_FREE(alloc_info, 1);
     return;
+    */
 
 ERROR:
     alloc_cbfunc(ret, NULL, 0, alloc_cbdata, NULL, NULL);
@@ -2570,7 +2546,6 @@ ERROR:
 
 void prte_master_recv(int status, pmix_proc_t *sender, pmix_data_buffer_t *buffer,
                       prte_rml_tag_t tag, void *cbdata){
-printf("(sergio): %s(%s,%d)\n", __FILE__, __func__, __LINE__);
     int n, ret;
     prte_daemon_cmd_flag_t command;
 

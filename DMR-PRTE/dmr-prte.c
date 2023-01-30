@@ -23,17 +23,12 @@ int DMR_slurm_request(int min, int max, int step, int pref)
 }
 
 int dmr_allocation_request(int min, int max, int pref, int *action, char *hosts){
-	printf("(sergio): %s(%s,%d) %d, %d, %d\n", __FILE__, __func__, __LINE__, min, max, pref);
 	
 	char *pID = getenv("SLURM_JOBID");
 	uint32_t procID = atoi(pID);
 	int dependentJobId = procID;  
 	job_info_msg_t *MasterInfo;
-	printf("(sergio): %s(%s,%d) %d, %d, %d\n", __FILE__, __func__, __LINE__, min, max, pref);
 	slurm_load_job(&MasterInfo, procID, 0);
-	printf("(sergio): %s(%s,%d) %d, %d, %d\n", __FILE__, __func__, __LINE__, min, max, pref);
-	sprintf(hosts, "%s", "hi sergio\0");
-	printf("(sergio): %s(%s,%d) Job %d has %d nodes\n", __FILE__, __func__, __LINE__, procID, (int)MasterInfo->job_array->num_nodes);
 
 	return 0;
 }

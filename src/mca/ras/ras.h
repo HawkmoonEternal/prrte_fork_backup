@@ -85,6 +85,11 @@ typedef int (*prte_ras_base_module_init_fn_t)(void);
  */
 typedef int (*prte_ras_base_module_allocate_fn_t)(prte_job_t *jdata, pmix_list_t *nodes);
 
+/**
+ * Allocate resources to a job.
+ */
+typedef int (*prte_ras_base_module_allocate_fn_t)(prte_job_t *jdata, pmix_list_t *nodes);
+
 /* deallocate resources */
 typedef void (*prte_ras_base_module_dealloc_fn_t)(prte_job_t *jdata, prte_app_context_t *app);
 
