@@ -408,7 +408,6 @@ int main(int argc, char *argv[])
      * choice of proxy since some environments forward their envars */
     unsetenv("PRTE_MCA_schizo_proxy");
 
-    printf("cli_read\n");
     /* parse the input argv to get values, including everyone's MCA params */
     PMIX_CONSTRUCT(&results, pmix_cli_result_t);
     rc = schizo->parse_cli(pargv, &results, PMIX_CLI_WARN);
@@ -422,7 +421,6 @@ int main(int argc, char *argv[])
         }
         return rc;
     }
-    printf("cli_finish\n");
 
     /* check if we are running as root - if we are, then only allow
      * us to proceed if the allow-run-as-root flag was given. Otherwise,

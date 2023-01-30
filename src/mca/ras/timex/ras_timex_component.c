@@ -133,8 +133,7 @@ static int prte_ras_timex_component_query(prte_mca_base_module_t **module, int *
      * I am not in a timex allocation, and dynamic alloc
      * is not enabled, then disqualify myself
      */
-    printf("query timex component\n");
-    if (NULL == getenv("timex_JOBID") && !prte_ras_timex_component.dyn_alloc_enabled) {
+    if (NULL == getenv("TIMEX") && !prte_ras_timex_component.dyn_alloc_enabled) {
         /* disqualify ourselves */
         *priority = 0;
         *module = NULL;
